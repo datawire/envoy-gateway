@@ -415,7 +415,7 @@ func (t *Translator) ProcessListeners(gateways []*GatewayContext, xdsIR *ir.Xds,
 			if listener.Hostname != nil {
 				irListener.Hostnames = append(irListener.Hostnames, string(*listener.Hostname))
 			}
-			xdsIR.HTTP = append(xdsIR.HTTP, irListener)
+			xdsIR.HTTP.Store(irListener.Name, irListener)
 		}
 	}
 }

@@ -21,7 +21,7 @@ func TranslateXDSIR(ir *ir.Xds) (*types.ResourceVersionTable, error) {
 
 	tCtx := new(types.ResourceVersionTable)
 
-	for _, httpListener := range ir.HTTP {
+	for _, httpListener := range ir.HTTP.LoadAll() {
 		// 1:1 between IR HTTPListener and xDS Listener
 		xdsListener, err := buildXdsListener(httpListener)
 		if err != nil {

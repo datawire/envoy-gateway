@@ -64,77 +64,74 @@ func xDSTest() error {
 
 	// Create three IR versions that we'll swap between, to
 	// generate xDS updates for the various methods.
-	ir1 := &ir.Xds{
-		HTTP: []*ir.HTTPListener{
-			{
-				Name:    "first-listener",
-				Address: "0.0.0.0",
-				Port:    10080,
-				Hostnames: []string{
-					"*",
-				},
-				Routes: []*ir.HTTPRoute{
-					{
-						Name: "first-route",
-						Destinations: []*ir.RouteDestination{
-							{
-								Host: "1.2.3.4",
-								Port: 50000,
-							},
+	ir1 := new(ir.Xds)
+	ir1.HTTP.Store("first-listener",
+		&ir.HTTPListener{
+			Name:    "first-listener",
+			Address: "0.0.0.0",
+			Port:    10080,
+			Hostnames: []string{
+				"*",
+			},
+			Routes: []*ir.HTTPRoute{
+				{
+					Name: "first-route",
+					Destinations: []*ir.RouteDestination{
+						{
+							Host: "1.2.3.4",
+							Port: 50000,
 						},
 					},
 				},
 			},
 		},
-	}
+	)
 
-	ir2 := &ir.Xds{
-		HTTP: []*ir.HTTPListener{
-			{
-				Name:    "first-listener",
-				Address: "0.0.0.0",
-				Port:    10080,
-				Hostnames: []string{
-					"*",
-				},
-				Routes: []*ir.HTTPRoute{
-					{
-						Name: "second-route",
-						Destinations: []*ir.RouteDestination{
-							{
-								Host: "1.2.3.4",
-								Port: 50000,
-							},
+	ir2 := new(ir.Xds)
+	ir2.HTTP.Store("first-listener",
+		&ir.HTTPListener{
+			Name:    "first-listener",
+			Address: "0.0.0.0",
+			Port:    10080,
+			Hostnames: []string{
+				"*",
+			},
+			Routes: []*ir.HTTPRoute{
+				{
+					Name: "second-route",
+					Destinations: []*ir.RouteDestination{
+						{
+							Host: "1.2.3.4",
+							Port: 50000,
 						},
 					},
 				},
 			},
 		},
-	}
+	)
 
-	ir3 := &ir.Xds{
-		HTTP: []*ir.HTTPListener{
-			{
-				Name:    "second-listener",
-				Address: "0.0.0.0",
-				Port:    10080,
-				Hostnames: []string{
-					"*",
-				},
-				Routes: []*ir.HTTPRoute{
-					{
-						Name: "second-route",
-						Destinations: []*ir.RouteDestination{
-							{
-								Host: "1.2.3.4",
-								Port: 50000,
-							},
+	ir3 := new(ir.Xds)
+	ir3.HTTP.Store("second-listener",
+		&ir.HTTPListener{
+			Name:    "second-listener",
+			Address: "0.0.0.0",
+			Port:    10080,
+			Hostnames: []string{
+				"*",
+			},
+			Routes: []*ir.HTTPRoute{
+				{
+					Name: "second-route",
+					Destinations: []*ir.RouteDestination{
+						{
+							Host: "1.2.3.4",
+							Port: 50000,
 						},
 					},
 				},
 			},
 		},
-	}
+	)
 
 	// Now, we do the translation because everything is static.
 	// Normally, we'd do this in response to updates on the

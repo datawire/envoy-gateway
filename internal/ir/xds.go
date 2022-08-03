@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/telepresenceio/watchable"
 	"github.com/tetratelabs/multierror"
 )
 
@@ -24,14 +25,14 @@ var (
 // Xds holds the intermediate representation of a Gateway and is
 // used by the xDS Translator to convert it into xDS resources.
 type Xds struct {
-	// HTTP listeners exposed by the gateway.
-	HTTP []*HTTPListener
+	// HTTP listeners exposed by the gateway, by name.
+	HTTP watchable.Map[string, *HTTPListener]
 }
 
 // Validate the fields within the Xds structure.
 func (x Xds) Validate() error {
 	var errs error
-	for _, http := range x.HTTP {
+	for _, http := range x.HTTP.LoadAll() {
 		if err := http.Validate(); err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -40,6 +41,8 @@ func (x Xds) Validate() error {
 }
 
 // HTTPListener holds the listener configuration.
+//
+// +k8s:deepcopy-gen=true
 type HTTPListener struct {
 	// Name of the HttpListener
 	Name string
@@ -59,12 +62,8 @@ type HTTPListener struct {
 }
 
 func (x Xds) GetListener(name string) *HTTPListener {
-	for _, listener := range x.HTTP {
-		if listener.Name == name {
-			return listener
-		}
-	}
-	return nil
+	listener, _ := x.HTTP.Load(name)
+	return listener
 }
 
 // Validate the fields within the HTTPListener structure
@@ -96,6 +95,8 @@ func (h HTTPListener) Validate() error {
 }
 
 // TLSListenerConfig holds the configuration for downstream TLS context.
+//
+// +k8s:deepcopy-gen=true
 type TLSListenerConfig struct {
 	// ServerCertificate of the server.
 	ServerCertificate []byte
@@ -116,6 +117,8 @@ func (t TLSListenerConfig) Validate() error {
 }
 
 // HTTPRoute holds the route information associated with the HTTP Route
+//
+// +k8s:deepcopy-gen=true
 type HTTPRoute struct {
 	// Name of the HTTPRoute
 	Name string
@@ -187,6 +190,8 @@ func (r RouteDestination) Validate() error {
 
 // StringMatch holds the various match conditions.
 // Only one of Exact, Prefix or SafeRegex can be set.
+//
+// +k8s:deepcopy-gen=true
 type StringMatch struct {
 	// Name of the field to match on.
 	Name string

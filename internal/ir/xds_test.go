@@ -63,30 +63,37 @@ var (
 func TestValidateXds(t *testing.T) {
 	tests := []struct {
 		name  string
-		input Xds
+		input func() Xds
 		want  []error
 	}{
 		{
 			name: "happy",
-			input: Xds{
-				HTTP: []*HTTPListener{&happyHTTPListener},
+			input: func() Xds {
+				var xds Xds
+				xds.HTTP.Store(happyHTTPListener.Name, &happyHTTPListener)
+				return xds
 			},
 			want: nil,
 		},
 		{
 			name: "invalid listener",
-			input: Xds{
-				HTTP: []*HTTPListener{&happyHTTPListener, &invalidAddrHTTPListener, &invalidRouteMatchHTTPListener},
+			input: func() Xds {
+				var xds Xds
+				xds.HTTP.Store(happyHTTPListener.Name, &happyHTTPListener)
+				xds.HTTP.Store(invalidAddrHTTPListener.Name, &invalidAddrHTTPListener)
+				xds.HTTP.Store(invalidRouteMatchHTTPListener.Name, &invalidRouteMatchHTTPListener)
+				return xds
 			},
 			want: []error{ErrHTTPListenerAddressInvalid, ErrHTTPRouteMatchEmpty},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			input := test.input()
 			if test.want == nil {
-				require.NoError(t, test.input.Validate())
+				require.NoError(t, input.Validate())
 			} else {
-				got := test.input.Validate()
+				got := input.Validate()
 				for _, w := range test.want {
 					assert.ErrorContains(t, got, w.Error())
 				}
