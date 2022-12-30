@@ -7,6 +7,7 @@ package translator
 
 import (
 	"errors"
+	"fmt"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -78,6 +79,8 @@ func Translate(ir *ir.Xds) (*types.ResourceVersionTable, error) {
 			Domains: httpListener.Hostnames,
 		}
 
+		routeExtenisonRefContexts := make([]RouteExtensionRefContext, 0)
+
 		for _, httpRoute := range httpListener.Routes {
 			// 1:1 between IR HTTPRoute and xDS config.route.v3.Route
 			xdsRoute := buildXdsRoute(httpRoute)
@@ -90,9 +93,49 @@ func Translate(ir *ir.Xds) (*types.ResourceVersionTable, error) {
 			xdsCluster := buildXdsCluster(httpRoute.Name, httpRoute.Destinations, httpListener.IsHTTP2)
 			tCtx.AddXdsResource(resource.ClusterType, xdsCluster)
 
+			// capture context
+			if len(httpRoute.ExtensionFilterRefs) > 0 {
+				routeExtenisonRefContexts = append(routeExtenisonRefContexts, RouteExtensionRefContext{
+					RouteName:           xdsRoute.Name,
+					HostNames:           vHost.Domains,
+					FilterExtensionRefs: httpRoute.ExtensionFilterRefs,
+				})
+			}
+
 		}
 
 		xdsRouteCfg.VirtualHosts = append(xdsRouteCfg.VirtualHosts, vHost)
+
+		// Post Hook
+		// Ideas:
+		// 1. rather than just hook functions we probably want something more so we can provide better logging
+		//   Why? Because, it might be useful to have other information for logging errors here
+		//	 However, we probably shouldn't expose GRPC/RPC concepts here either
+
+		// PostHTTPListenerHook.....
+		for _, hookFn := range getPostHTTPListenerHooks() {
+
+			req := PostListenerHookRequest{
+				Listener: xdsListener,
+				ExtensionRefContext: ExtensionRefContext{
+					RouteExtensionRefContexts: routeExtenisonRefContexts,
+				},
+			}
+
+			resp, err := hookFn(req)
+			if err != nil {
+				return nil, fmt.Errorf("error in postHTTPListenerHook for extension xyz: %w", err)
+			}
+
+			// TODO: Might need to reset xdsListener before merging...
+			findAndReplaceXdsListener(tCtx, httpListener.Address, httpListener.Port, core.SocketAddress_TCP, resp.Listener)
+
+			for _, cluster := range resp.Clusters {
+				tCtx.AddXdsResource(resource.ClusterType, cluster)
+			}
+			// TODO - i'm guessing we add secretes here too and allow other resources
+		}
+
 	}
 
 	for _, tcpListener := range ir.TCP {
@@ -145,6 +188,24 @@ func findXdsListener(tCtx *types.ResourceVersionTable, address string, port uint
 	}
 
 	return nil
+}
+
+func findAndReplaceXdsListener(tCtx *types.ResourceVersionTable, address string, port uint32,
+	protocol core.SocketAddress_Protocol, modifiedListener *listener.Listener) {
+	if tCtx == nil || tCtx.XdsResources == nil || tCtx.XdsResources[resource.ListenerType] == nil {
+		return
+	}
+
+	for i, r := range tCtx.XdsResources[resource.ListenerType] {
+		listener := r.(*listener.Listener)
+		addr := listener.GetAddress()
+		if addr.GetSocketAddress().GetPortValue() == port && addr.GetSocketAddress().Address == address && addr.
+			GetSocketAddress().Protocol == protocol {
+
+			tCtx.XdsResources[resource.ListenerType][i] = modifiedListener
+			return
+		}
+	}
 }
 
 // findXdsRouteConfig finds an xds route with the name and returns nil if there is no match.

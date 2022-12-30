@@ -34,58 +34,61 @@ func TestTranslate(t *testing.T) {
 		requireSecrets bool
 	}{
 		{
-			name: "empty",
+			name: "post-listener-hook",
 		},
-		{
-			name: "http-route",
-		},
-		{
-			name: "http-route-redirect",
-		},
-		{
-			name: "http-route-direct-response",
-		},
-		{
-			name: "http-route-request-headers",
-		},
-		{
-			name: "http-route-response-add-headers",
-		},
-		{
-			name: "http-route-response-remove-headers",
-		},
-		{
-			name: "http-route-response-add-remove-headers",
-		},
-		{
-			name: "http-route-weighted-invalid-backend",
-		},
-		{
-			name:           "simple-tls",
-			requireSecrets: true,
-		},
-		{
-			name: "tls-route-passthrough",
-		},
-		{
-			name:           "multiple-listeners-same-port",
-			requireSecrets: true,
-		},
-		{
-			name: "udp-route",
-		},
-		{
-			name: "http2-route",
-		},
-		{
-			name: "http-route-rewrite-url-prefix",
-		},
-		{
-			name: "http-route-rewrite-url-fullpath",
-		},
-		{
-			name: "http-route-rewrite-url-host",
-		},
+		// {
+		// 	name: "empty",
+		// },
+		// {
+		// 	name: "http-route",
+		// },
+		// {
+		// 	name: "http-route-redirect",
+		// },
+		// {
+		// 	name: "http-route-direct-response",
+		// },
+		// {
+		// 	name: "http-route-request-headers",
+		// },
+		// {
+		// 	name: "http-route-response-add-headers",
+		// },
+		// {
+		// 	name: "http-route-response-remove-headers",
+		// },
+		// {
+		// 	name: "http-route-response-add-remove-headers",
+		// },
+		// {
+		// 	name: "http-route-weighted-invalid-backend",
+		// },
+		// {
+		// 	name:           "simple-tls",
+		// 	requireSecrets: true,
+		// },
+		// {
+		// 	name: "tls-route-passthrough",
+		// },
+		// {
+		// 	name:           "multiple-listeners-same-port",
+		// 	requireSecrets: true,
+		// },
+		// {
+		// 	name: "udp-route",
+		// },
+		// {
+		// 	name: "http2-route",
+		// },
+		// {
+		// 	name: "http-route-rewrite-url-prefix",
+		// },
+		// {
+		// 	name: "http-route-rewrite-url-fullpath",
+		// },
+		// {
+		// 	name: "http-route-rewrite-url-host",
+		// },
 	}
 
 	for _, tc := range testCases {

@@ -10,6 +10,7 @@ import (
 	"net"
 
 	"github.com/tetratelabs/multierror"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var (
@@ -182,6 +183,25 @@ type BackendWeights struct {
 	Invalid uint32
 }
 
+// ExtensionFilterRef holds context about a filter applied to a route
+type ExtensionFilterRef struct {
+	// GroupVesionKind is the group of the referent. For example, "gateway.networking.k8s.io".
+	// Group and version are required for Vendor Extensions
+	//
+	// TODO(lance): Gateway-api currently doesn't allow setting a version...this is probably due to
+	// the assumption that it is an internal implementation detail and should be resolved
+	// be the implementation (complete guess or maybe we need to ask for the enhancment???)
+	GroupVersionKind schema.GroupVersionKind `json:"gvk"`
+
+	// Name is the name of the referent.
+	// Note: today it is required to be in the same namespace as the HTTP Route
+	//
+	// TODO(lance) - do we want to allow cross-namespace? If so is the
+	// ReferenceGrant able to be passed as context or checked and inject
+	// valid names in here???
+	Name string `json:"name"`
+}
+
 // HTTPRoute holds the route information associated with the HTTP Route
 // +k8s:deepcopy-gen=true
 type HTTPRoute struct {
@@ -211,6 +231,8 @@ type HTTPRoute struct {
 	Destinations []*RouteDestination
 	// Rewrite to be changed for this route.
 	URLRewrite *URLRewrite
+	// ExtensionFilterRefs
+	ExtensionFilterRefs []ExtensionFilterRef
 }
 
 // Validate the fields within the HTTPRoute structure
