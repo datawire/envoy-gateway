@@ -175,7 +175,7 @@ func (in *Extension) DeepCopyInto(out *Extension) {
 	*out = *in
 	if in.APIGroups != nil {
 		in, out := &in.APIGroups, &out.APIGroups
-		*out = make([]string, len(*in))
+		*out = make([]APIGroup, len(*in))
 		copy(*out, *in)
 	}
 	if in.Service != nil {
