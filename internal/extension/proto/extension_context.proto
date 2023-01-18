@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package envoygateway.extension;
+
+option go_package = "internal/extension/proto";
+
+// ObjectReference is the K8s API object referenced in an HTTPRouteFilter extensionRef.
+// The API object must be valid within the cluster and the Group and Kind must be
+// registered with the cluster.
+//
+// TODO: Gateway API currently doesn't allow setting a version...this is probably due to
+// the assumption that it is an internal implementation detail and should be resolved
+// be the implementation (complete guess or maybe we need to ask for the enhancement???)
+message ObjectReference {
+    // api_group is an K8s group of the referent (e.g gateway.networking.k8s.io).
+    string api_group = 1;
+
+    // kind is the Kind of the referent (e.g HTTPRoute, Service).
+    string kind = 2;
+
+    // name is the object name of the referent.
+    string name = 3;
+}
+
+// HTTPListenerExtensionContext provides context on
+// the users intent so that the provided XDS can be modified by the Extension.
+message HTTPListenerExtensionContext {
+    // route_filter_extension_ctxs provides a list of HTTPRouteFilters
+    // that use an extensionRef registered by the extension.
+    // The list is in the order it was processed in XDS Translation
+    repeated HTTPRouteFilterExtensionContext route_filter_extension_ctxs = 1;
+}
+
+// HTTPRouteFilterExtensionContext provides context about an HTTPRoute containing an
+// ExtensionRef HTTPRouteFilterType. The context provided includes which filterchain/s,
+// route and Group/Kind of the object referent.
+message HTTPRouteFilterExtensionContext {
+    // route_name is the name of HTTPRoute the filter is being applied on
+    //
+    // TODO: Will we need more context than just route name such as Path, Headers,
+    // and QueryParameter matches?
+    string route_name = 1;
+
+    // hostnames are the fully qualified domain names attached to the HTTPRoute
+    repeated string hostnames = 2;
+
+    // route_filter_extension_refs contains the list of Objects added as extensionRefs
+    // to an HTTPRouteFilter.
+    repeated ObjectReference route_filter_extension_refs = 3;
+}
