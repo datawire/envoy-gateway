@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package envoygateway.extension;
+
+import "envoy/config/cluster/v3/cluster.proto";
+import "envoy/config/listener/v3/listener.proto";
+import "envoy/config/route/v3/route.proto";
+import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
+
+import "internal/extension/proto/extension_context.proto";
+
+option go_package = "internal/extension/proto";
+
+service EnvoyGatewayExtension {
+    rpc PostHTTPListenerTranslation (PostHTTPListenerTranslationRequest) returns (PostHTTPListenerTranslationResponse) {};
+}
+
+message PostHTTPListenerTranslationRequest {
+    HTTPListenerExtensionContext extension_context = 1;
+    envoy.config.listener.v3.Listener listener = 2;
+    envoy.config.route.v3.RouteConfiguration route_table = 3;
+}
+
+message PostHTTPListenerTranslationResponse {
+    repeated envoy.config.cluster.v3.Cluster clusters = 1;
+    envoy.config.listener.v3.Listener listener = 2;
+    envoy.config.route.v3.RouteConfiguration route_table = 3;
+    repeated envoy.extensions.transport_sockets.tls.v3.Secret secrets = 4;
+}
