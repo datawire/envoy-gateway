@@ -93,7 +93,7 @@ type FileProvider struct {
 
 type Extension struct {
 	// Name defines the name to register with for the extension.
-	Name string
+	Name ExtensionId
 
 	// APIGroups defines the set of K8s api groups the extension will handle.
 	APIGroups []APIGroup
