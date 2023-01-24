@@ -5,9 +5,6 @@
 
 package v1alpha1
 
-// APIGroup defines a K8s API group (e.g gateway.envoyproxy.io)
-type APIGroup string
-
 // ExtensionId represents the ID an extension is registered with
 type ExtensionId string
 
