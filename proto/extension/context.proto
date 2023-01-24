@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package envoygateway.extension;
 
-option go_package = "internal/extension/proto";
+option go_package = "proto/extension";
 
 // ObjectReference is the K8s API object referenced in an HTTPRouteFilter extensionRef.
 // The API object must be valid within the cluster and the Group and Kind must be
