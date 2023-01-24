@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/envoyproxy/gateway/internal/extension/proto"
+	"github.com/envoyproxy/gateway/proto/extension"
 	xdsTypes "github.com/envoyproxy/gateway/internal/xds/types"
 )
 
@@ -23,6 +23,6 @@ type XDSHookClient interface {
 	//   will be modified by the method using the response from the extension service for the updated xDS resources.
 	//   It should not be sent over the wire.
 	PostHTTPListenerTranslation(
-		httpListenerExtCtx *proto.HTTPListenerExtensionContext, xdsResourceVerTbl *xdsTypes.ResourceVersionTable,
+		httpListenerExtCtx *extension.HTTPListenerExtensionContext, xdsResourceVerTbl *xdsTypes.ResourceVersionTable,
 	) error
 }
