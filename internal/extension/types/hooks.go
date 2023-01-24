@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/envoyproxy/gateway/proto/extension"
 	xdsTypes "github.com/envoyproxy/gateway/internal/xds/types"
+	"github.com/envoyproxy/gateway/proto/extension"
 )
 
 type HookType string
