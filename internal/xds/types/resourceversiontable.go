@@ -73,3 +73,25 @@ func (t *ResourceVersionTable) AddXdsResource(rType resource.Type, xdsResource t
 
 	t.XdsResources[rType] = append(t.XdsResources[rType], xdsResource)
 }
+
+// AddOrReplaceXdsResource will update an existing resource of rType according to matchFunc or add as a new resource
+// if none satisify the match criteria. It will only update the first match it finds, regardless
+// if multiple resources satisfy the match criteria.
+func (t *ResourceVersionTable) AddOrReplaceXdsResource(rType resource.Type, resource types.Resource, matchFunc func(existing types.Resource, new types.Resource) bool) {
+	if t.XdsResources == nil || t.XdsResources[rType] == nil {
+		t.AddXdsResource(rType, resource)
+		return
+	}
+
+	var found bool
+	for i, r := range t.XdsResources[rType] {
+		if matchFunc(r, resource) {
+			t.XdsResources[rType][i] = resource
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.AddXdsResource(rType, resource)
+	}
+}
