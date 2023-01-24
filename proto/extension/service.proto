@@ -7,9 +7,9 @@ import "envoy/config/listener/v3/listener.proto";
 import "envoy/config/route/v3/route.proto";
 import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
 
-import "internal/extension/proto/extension_context.proto";
+import "proto/extension/context.proto";
 
-option go_package = "internal/extension/proto";
+option go_package = "proto/extension";
 
 service EnvoyGatewayExtension {
     rpc PostHTTPListenerTranslation (PostHTTPListenerTranslationRequest) returns (PostHTTPListenerTranslationResponse) {};

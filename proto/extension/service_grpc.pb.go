@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: internal/extension/proto/extension_service.proto
+// source: proto/extension/service.proto
 
-package proto
+package extension
 
 import (
 	context "context"
@@ -101,5 +101,5 @@ var EnvoyGatewayExtension_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/extension/proto/extension_service.proto",
+	Metadata: "proto/extension/service.proto",
 }
