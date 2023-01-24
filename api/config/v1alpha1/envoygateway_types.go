@@ -7,6 +7,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 const (
@@ -96,7 +97,7 @@ type Extension struct {
 	Name ExtensionId
 
 	// APIGroups defines the set of K8s api groups the extension will handle.
-	APIGroups []APIGroup
+	APIGroups []v1beta1.Group
 
 	// Service defines the configuration of the extension service that the Envoy
 	// Gateway Control Plane will call through extension hooks.
