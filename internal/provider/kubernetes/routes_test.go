@@ -20,6 +20,7 @@ import (
 	"github.com/envoyproxy/gateway/api/config/v1alpha1"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/envoygateway"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 	"github.com/envoyproxy/gateway/internal/gatewayapi"
 	"github.com/envoyproxy/gateway/internal/log"
 	"github.com/envoyproxy/gateway/internal/provider/utils"
@@ -112,7 +113,7 @@ func TestProcessHTTPRoutes(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
-						Name:      "test",
+						Name:      "test-authfilter",
 					},
 					Spec: gwapiv1b1.HTTPRouteSpec{
 						CommonRouteSpec: gwapiv1b1.CommonRouteSpec{
@@ -138,7 +139,7 @@ func TestProcessHTTPRoutes(t *testing.T) {
 										ExtensionRef: &gwapiv1b1.LocalObjectReference{
 											Group: gwapiv1b1.Group(egv1a1.GroupVersion.Group),
 											Kind:  gwapiv1b1.Kind(egv1a1.AuthenticationFilterKind),
-											Name:  gwapiv1b1.ObjectName("test"),
+											Name:  gwapiv1b1.ObjectName("test-authfilter"),
 										},
 									},
 								},
@@ -166,7 +167,7 @@ func TestProcessHTTPRoutes(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
-						Name:      "test",
+						Name:      "test-authfilter",
 					},
 					Spec: egv1a1.AuthenticationFilterSpec{
 						Type: egv1a1.JwtAuthenticationFilterProviderType,
@@ -177,6 +178,60 @@ func TestProcessHTTPRoutes(t *testing.T) {
 								Audiences: []string{"test.local"},
 								RemoteJWKS: egv1a1.RemoteJWKS{
 									URI: "https://test.local/jwt/public-key/jwks.json",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "httproute with custom_extension",
+			routes: []*gwapiv1b1.HTTPRoute{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "test",
+						Name:      "test-extension",
+					},
+					Spec: gwapiv1b1.HTTPRouteSpec{
+						CommonRouteSpec: gwapiv1b1.CommonRouteSpec{
+							ParentRefs: []gwapiv1b1.ParentReference{
+								{
+									Name: "test",
+								},
+							},
+						},
+						Rules: []gwapiv1b1.HTTPRouteRule{
+							{
+								Matches: []gwapiv1b1.HTTPRouteMatch{
+									{
+										Path: &gwapiv1b1.HTTPPathMatch{
+											Type:  gatewayapi.PathMatchTypePtr(gwapiv1b1.PathMatchPathPrefix),
+											Value: gatewayapi.StringPtr("/"),
+										},
+									},
+								},
+								Filters: []gwapiv1b1.HTTPRouteFilter{
+									{
+										Type: gwapiv1b1.HTTPRouteFilterExtensionRef,
+										ExtensionRef: &gwapiv1b1.LocalObjectReference{
+											Group: gwapiv1b1.Group("foo.example.io"),
+											Kind:  gwapiv1b1.Kind("Bar"),
+											Name:  gwapiv1b1.ObjectName("test-extension"),
+										},
+									},
+								},
+								BackendRefs: []gwapiv1b1.HTTPBackendRef{
+									{
+										BackendRef: gwapiv1b1.BackendRef{
+											BackendObjectReference: gwapiv1b1.BackendObjectReference{
+												Group: gatewayapi.GroupPtr(corev1.GroupName),
+												Kind:  gatewayapi.KindPtr(gatewayapi.KindService),
+												Name:  "test",
+											},
+										},
+									},
 								},
 							},
 						},
@@ -196,9 +251,16 @@ func TestProcessHTTPRoutes(t *testing.T) {
 		// Create the reconciler.
 		logger, err := log.NewLogger()
 		require.NoError(t, err)
+		ext := v1alpha1.Extension{
+			Name: "foo",
+			APIGroups: []gwapiv1b1.Group{
+				"foo.example.io",
+			},
+		}
 		r := &gatewayAPIReconciler{
-			log:             logger,
-			classController: gcCtrlName,
+			log:              logger,
+			classController:  gcCtrlName,
+			extensionManager: testutils.NewManager(ext),
 		}
 		ctx := context.Background()
 

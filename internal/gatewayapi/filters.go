@@ -25,7 +25,7 @@ type HTTPFiltersTranslator interface {
 	processRedirectFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext)
 	processRequestHeaderModifierFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext)
 	processResponseHeaderModifierFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext)
-	processExtensionRefHTTPFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext, resources *Resources)
+	processExtensionRefHTTPFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext, httpRouteContext *HTTPRouteContext, resources *Resources)
 	processUnsupportedHTTPFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext)
 }
 
@@ -49,6 +49,8 @@ type HTTPFilterChains struct {
 
 	AddResponseHeaders    []ir.AddHeader
 	RemoveResponseHeaders []string
+
+	Extensions *ir.HTTPFilterExtensionRefs
 }
 
 // ProcessHTTPFilters translate gateway api http filters to IRs.
@@ -69,7 +71,7 @@ func (t *Translator) ProcessHTTPFilters(parentRef *RouteParentContext,
 		if httpFiltersContext.DirectResponse != nil {
 			break
 		}
-		if err := ValidateHTTPRouteFilter(&filter); err != nil {
+		if err := ValidateHTTPRouteFilter(t.ExtensionManager, &filter); err != nil {
 			t.processInvalidHTTPFilter(filter, httpFiltersContext, err)
 			break
 		}
@@ -84,7 +86,7 @@ func (t *Translator) ProcessHTTPFilters(parentRef *RouteParentContext,
 		case v1beta1.HTTPRouteFilterResponseHeaderModifier:
 			t.processResponseHeaderModifierFilter(filter, httpFiltersContext)
 		case v1beta1.HTTPRouteFilterExtensionRef:
-			t.processExtensionRefHTTPFilter(filter, httpFiltersContext, resources)
+			t.processExtensionRefHTTPFilter(filter, httpFiltersContext, httpRoute, resources)
 		default:
 			t.processUnsupportedHTTPFilter(filter, httpFiltersContext)
 		}
@@ -607,33 +609,52 @@ func (t *Translator) processResponseHeaderModifierFilter(
 	}
 }
 
-func (t *Translator) processExtensionRefHTTPFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext, resources *Resources) {
-	// If a reference to a custom filter type cannot be resolved, the filter MUST NOT be skipped.
-	// Instead, requests that would have been processed by that filter MUST receive an HTTP error
-	// response.
-	found := false
+func (t *Translator) processExtensionRefHTTPFilter(filter v1beta1.HTTPRouteFilter, filterContext *HTTPFiltersContext, httpRouteContext *HTTPRouteContext, resources *Resources) {
+	// Make sure the config actually exists.
+	extFilter := filter.ExtensionRef
+	if extFilter == nil {
+		return
+	}
 
-	for _, f := range resources.AuthenFilters {
-		if f.Namespace == filterContext.HTTPRoute.Namespace && f.Name == string(filter.ExtensionRef.Name) {
-			found = true
-			break
+	switch string(filter.ExtensionRef.Kind) {
+	case "AuthenticationFilter":
+		for _, f := range resources.AuthenFilters {
+			if f.Namespace == filterContext.HTTPRoute.Namespace && f.Name == string(filter.ExtensionRef.Name) {
+				return
+			}
+		}
+	default:
+		if ok, extName := t.ExtensionManager.HasExtension(filter.ExtensionRef.Group, filter.ExtensionRef.Kind); ok {
+			// TODO: here we might want to check with the extension service if the filter resource
+			// actually exists and has processed it. For now, just assume that it is.
+
+			if filterContext.Extensions == nil {
+				filterContext.Extensions = &ir.HTTPFilterExtensionRefs{
+					ExtensionId: *extName,
+					HTTPRouteNamespace: httpRouteContext.GetNamespace(),
+				}
+			}
+
+			filterContext.Extensions.ExtensionRefs = append(filterContext.Extensions.ExtensionRefs, filter.ExtensionRef)
+			return
 		}
 	}
 
-	if !found {
-		errMsg := fmt.Sprintf("Reference not found for filter type: %s", filter.Type)
-		// Reset the conditions in case the Accepted=True condition exists.
-		filterContext.ParentRef.ResetConditions(filterContext.HTTPRoute)
-		filterContext.ParentRef.SetCondition(filterContext.HTTPRoute,
-			v1beta1.RouteConditionResolvedRefs,
-			metav1.ConditionFalse,
-			v1beta1.RouteReasonBackendNotFound,
-			errMsg,
-		)
-		filterContext.DirectResponse = &ir.DirectResponse{
-			Body:       &errMsg,
-			StatusCode: 500,
-		}
+	// If a reference to a custom filter type cannot be resolved, the filter MUST NOT be skipped.
+	// Instead, requests that would have been processed by that filter MUST receive an HTTP error
+	// response.
+	errMsg := fmt.Sprintf("Reference not found for filter type: %s", filter.Type)
+	// Reset the conditions in case the Accepted=True condition exists.
+	filterContext.ParentRef.ResetConditions(filterContext.HTTPRoute)
+	filterContext.ParentRef.SetCondition(filterContext.HTTPRoute,
+		v1beta1.RouteConditionResolvedRefs,
+		metav1.ConditionFalse,
+		v1beta1.RouteReasonBackendNotFound,
+		errMsg,
+	)
+	filterContext.DirectResponse = &ir.DirectResponse{
+		Body:       &errMsg,
+		StatusCode: 500,
 	}
 }
 
