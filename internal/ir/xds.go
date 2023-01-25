@@ -9,7 +9,9 @@ import (
 	"errors"
 	"net"
 
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/tetratelabs/multierror"
+	"sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 var (
@@ -215,6 +217,8 @@ type HTTPRoute struct {
 	// RateLimit defines the more specific match conditions as well as limits for ratelimiting
 	// the requests on this route.
 	RateLimit *RateLimit
+	// ExtensionRefs defines filters containin extensionRefs to resources managed by an Envoy Gateway extension.
+	Extensions *HTTPFilterExtensionRefs
 }
 
 // Validate the fields within the HTTPRoute structure
@@ -644,4 +648,16 @@ type RateLimitValue struct {
 	Requests uint32
 	// Unit of rate limiting.
 	Unit RateLimitUnit
+}
+
+type HTTPFilterExtensionRefs struct {
+	// ExtensionId is the ID of the registered extension that will handle the extensionRefs
+	ExtensionId   v1alpha1.ExtensionId
+	// Namespace of the HTTPRoute Gateway API resource
+	//
+	// TODO: It may make more sense to add this field to HTTPRoute instead but don't want to update
+	// a bunch of testdata files so adding it here for now.
+	HTTPRouteNamespace string
+	// ExtensionRefs are the filters of type extensionRef referencing an APIGroup/Kind registered by ExtensionID
+	ExtensionRefs []*v1beta1.LocalObjectReference
 }

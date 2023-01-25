@@ -20,7 +20,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 )
 
 func mustUnmarshal(t *testing.T, val string, out interface{}) {
@@ -46,9 +50,17 @@ func TestTranslate(t *testing.T) {
 			want := &TranslateResult{}
 			mustUnmarshal(t, string(output), want)
 
+			ext := v1alpha1.Extension{
+				Name: "foo",
+				APIGroups: []gwapiv1beta1.Group{
+					"foo.example.io",
+				},
+			}
+
 			translator := &Translator{
 				GatewayClassName: "envoy-gateway-class",
 				ProxyImage:       "envoyproxy/envoy:translator-tests",
+				ExtensionManager: testutils.NewManager(ext),
 			}
 
 			// Add common test fixtures

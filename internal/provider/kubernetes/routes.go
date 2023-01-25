@@ -205,12 +205,13 @@ func (r *gatewayAPIReconciler) processHTTPRoutes(ctx context.Context, gatewayNam
 
 			for i := range rule.Filters {
 				filter := rule.Filters[i]
-				if err := gatewayapi.ValidateHTTPRouteFilter(&filter); err != nil {
+				if err := gatewayapi.ValidateHTTPRouteFilter(r.extensionManager, &filter); err != nil {
 					r.log.Error(err, "bypassing filter rule", "index", i)
 					continue
 				}
 
-				if filter.Type == gwapiv1b1.HTTPRouteFilterExtensionRef {
+				if filter.Type == gwapiv1b1.HTTPRouteFilterExtensionRef &&
+					filter.ExtensionRef.Group == gwapiv1b1.Group(egv1a1.GroupVersion.Group) {
 					authenFilter, err := r.getAuthenticationFilter(ctx, httpRoute.Namespace, string(filter.ExtensionRef.Name))
 					if err != nil {
 						r.log.Error(err, "bypassing filter rule", "index", i)

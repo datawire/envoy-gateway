@@ -28,6 +28,7 @@ import (
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
+	extension "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/gatewayapi"
 	"github.com/envoyproxy/gateway/internal/message"
 	"github.com/envoyproxy/gateway/internal/provider/utils"
@@ -53,26 +54,28 @@ const (
 )
 
 type gatewayAPIReconciler struct {
-	client          client.Client
-	log             logr.Logger
-	statusUpdater   status.Updater
-	classController gwapiv1b1.GatewayController
-	namespace       string
+	client           client.Client
+	log              logr.Logger
+	statusUpdater    status.Updater
+	classController  gwapiv1b1.GatewayController
+	namespace        string
+	extensionManager extension.Manager
 
 	resources *message.ProviderResources
 }
 
 // newGatewayAPIController
-func newGatewayAPIController(mgr manager.Manager, cfg *config.Server, su status.Updater, resources *message.ProviderResources) error {
+func newGatewayAPIController(mgr manager.Manager, cfg *config.Server, su status.Updater, resources *message.ProviderResources, extManager extension.Manager) error {
 	ctx := context.Background()
 
 	r := &gatewayAPIReconciler{
-		client:          mgr.GetClient(),
-		log:             cfg.Logger,
-		classController: gwapiv1b1.GatewayController(cfg.EnvoyGateway.Gateway.ControllerName),
-		namespace:       cfg.Namespace,
-		statusUpdater:   su,
-		resources:       resources,
+		client:           mgr.GetClient(),
+		log:              cfg.Logger,
+		classController:  gwapiv1b1.GatewayController(cfg.EnvoyGateway.Gateway.ControllerName),
+		namespace:        cfg.Namespace,
+		statusUpdater:    su,
+		resources:        resources,
+		extensionManager: extManager,
 	}
 
 	c, err := controller.New("gatewayapi", mgr, controller.Options{Reconciler: r})
@@ -474,7 +477,7 @@ func addReferenceGrantIndexers(ctx context.Context, mgr manager.Manager) error {
 //   - For AuthenticationFilter objects that are referenced in HTTPRoute objects via
 //     `.spec.rules[].filters`. This helps in querying for HTTPRoutes that are affected by a
 //     particular AuthenticationFilter CRUD.
-func addHTTPRouteIndexers(ctx context.Context, mgr manager.Manager) error {
+func addHTTPRouteIndexers(ctx context.Context, mgr manager.Manager, extManager extension.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &gwapiv1b1.HTTPRoute{}, gatewayHTTPRouteIndex, gatewayHTTPRouteIndexFunc); err != nil {
 		return err
 	}
@@ -490,7 +493,7 @@ func addHTTPRouteIndexers(ctx context.Context, mgr manager.Manager) error {
 			for i := range rule.Filters {
 				filter := rule.Filters[i]
 				if filter.Type == gwapiv1b1.HTTPRouteFilterExtensionRef {
-					if err := gatewayapi.ValidateHTTPRouteFilter(&filter); err != nil {
+					if err := gatewayapi.ValidateHTTPRouteFilter(extManager, &filter); err != nil {
 						filters = append(filters,
 							types.NamespacedName{
 								Namespace: httproute.Namespace,
@@ -1028,7 +1031,7 @@ func (r *gatewayAPIReconciler) watchResources(ctx context.Context, mgr manager.M
 	); err != nil {
 		return err
 	}
-	if err := addHTTPRouteIndexers(ctx, mgr); err != nil {
+	if err := addHTTPRouteIndexers(ctx, mgr, r.extensionManager); err != nil {
 		return err
 	}
 
