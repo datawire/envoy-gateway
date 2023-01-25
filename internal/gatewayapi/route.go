@@ -205,6 +205,9 @@ func (t *Translator) processHTTPRouteRule(httpRoute *HTTPRouteContext, ruleIdx i
 		if httpFiltersContext.URLRewrite != nil {
 			irRoute.URLRewrite = httpFiltersContext.URLRewrite
 		}
+		if httpFiltersContext.Extensions != nil {
+			irRoute.Extensions = httpFiltersContext.Extensions
+		}
 		if len(httpFiltersContext.AddRequestHeaders) > 0 {
 			irRoute.AddRequestHeaders = httpFiltersContext.AddRequestHeaders
 		}
@@ -269,6 +272,7 @@ func (t *Translator) processHTTPRouteParentRefListener(httpRoute *HTTPRouteConte
 					Redirect:              routeRoute.Redirect,
 					DirectResponse:        routeRoute.DirectResponse,
 					URLRewrite:            routeRoute.URLRewrite,
+					Extensions:            routeRoute.Extensions,
 				}
 				// Don't bother copying over the weights unless the route has invalid backends.
 				if routeRoute.BackendWeights.Invalid > 0 {
