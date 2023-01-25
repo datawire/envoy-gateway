@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
+	extTypes "github.com/envoyproxy/gateway/internal/extension/types"
 )
 
 const (
@@ -180,7 +181,7 @@ func HasReadyListener(listeners []*ListenerContext) bool {
 }
 
 // ValidateHTTPRouteFilter validates the provided filter within HTTPRoute.
-func ValidateHTTPRouteFilter(filter *v1beta1.HTTPRouteFilter) error {
+func ValidateHTTPRouteFilter(em extTypes.Manager, filter *v1beta1.HTTPRouteFilter) error {
 	switch {
 	case filter == nil:
 		return errors.New("filter is nil")
@@ -194,11 +195,19 @@ func ValidateHTTPRouteFilter(filter *v1beta1.HTTPRouteFilter) error {
 		switch {
 		case filter.ExtensionRef == nil:
 			return errors.New("extensionRef field must be specified for an extended filter")
-		case string(filter.ExtensionRef.Group) != egv1a1.GroupVersion.Group:
-			return fmt.Errorf("invalid group; must be %s", egv1a1.GroupVersion.Group)
-		case string(filter.ExtensionRef.Kind) != egv1a1.AuthenticationFilterKind:
-			return fmt.Errorf("invalid kind; must be %s", egv1a1.AuthenticationFilterKind)
+		// extensionRef references Envoy Gateway API group
+		case string(filter.ExtensionRef.Group) == egv1a1.GroupVersion.Group:
+			switch {
+			case string(filter.ExtensionRef.Kind) != egv1a1.AuthenticationFilterKind:
+				return fmt.Errorf("invalid kind for group %s; must be %s", egv1a1.GroupVersion.Group, egv1a1.AuthenticationFilterKind)
+			default:
+				return nil
+			}
+		// Check to see if any registered extensions support the Group/Kind
 		default:
+			if ok, _ := em.HasExtension(filter.ExtensionRef.Group, filter.ExtensionRef.Kind); !ok {
+				return fmt.Errorf("unrecognized group and/or kind: Group: %s; Kind: %s", filter.ExtensionRef.Group, filter.ExtensionRef.Kind)
+			}
 			return nil
 		}
 	}

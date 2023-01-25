@@ -8,6 +8,8 @@ package gatewayapi
 import (
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	extension "github.com/envoyproxy/gateway/internal/extension/types"
 )
 
 const (
@@ -57,6 +59,10 @@ type Translator struct {
 	// the Infra IR. If unspecified, the default proxy
 	// image will be used.
 	ProxyImage string
+
+	// ExtensionManager manages extensions to support
+	// additional filters for HTTRouteFilter extensionRef
+	ExtensionManager extension.Manager
 }
 
 type TranslateResult struct {

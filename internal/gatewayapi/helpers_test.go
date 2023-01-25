@@ -17,7 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
+	egv1a1cfg "github.com/envoyproxy/gateway/api/config/v1alpha1"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 )
 
 func TestValidateAuthenFilterRef(t *testing.T) {
@@ -109,12 +111,30 @@ func TestValidateAuthenFilterRef(t *testing.T) {
 			},
 			expected: true,
 		},
+		{
+			name: "valid extension group",
+			filter: &gwapiv1b1.HTTPRouteFilter{
+				Type: gwapiv1b1.HTTPRouteFilterExtensionRef,
+				ExtensionRef: &gwapiv1b1.LocalObjectReference{
+					Group: gwapiv1b1.Group("foo.example.io"),
+					Kind:  gwapiv1b1.Kind("Bar"),
+					Name:  "test",
+				},
+			},
+			expected: true,
+		},
 	}
 
+	ext := egv1a1cfg.Extension{
+		APIGroups: []gwapiv1b1.Group{
+			"foo.example.io",
+		},
+	}
+	em := testutils.NewManager(ext)
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateHTTPRouteFilter(tc.filter)
+			err := ValidateHTTPRouteFilter(em, tc.filter)
 			if tc.expected {
 				require.NoError(t, err)
 			} else {

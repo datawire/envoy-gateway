@@ -9,7 +9,9 @@ import (
 	"errors"
 	"net"
 
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/tetratelabs/multierror"
+	"sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 var (
@@ -188,6 +190,8 @@ type BackendWeights struct {
 type HTTPRoute struct {
 	// Name of the HTTPRoute
 	Name string
+	// Namespace of the HTTPRoute Gateway API resource
+	Namespace string
 	// PathMatch defines the match conditions on the path.
 	PathMatch *StringMatch
 	// HeaderMatches define the match conditions on the request headers for this route.
@@ -215,6 +219,8 @@ type HTTPRoute struct {
 	// RateLimit defines the more specific match conditions as well as limits for ratelimiting
 	// the requests on this route.
 	RateLimit *RateLimit
+	// ExtensionRefs defines filters containin extensionRefs to resources managed by an Envoy Gateway extension.
+	Extensions *HTTPFilterExtensionRefs
 }
 
 // Validate the fields within the HTTPRoute structure
@@ -644,4 +650,9 @@ type RateLimitValue struct {
 	Requests uint32
 	// Unit of rate limiting.
 	Unit RateLimitUnit
+}
+
+type HTTPFilterExtensionRefs struct {
+	ExtensionId   v1alpha1.ExtensionId
+	ExtensionRefs []*v1beta1.LocalObjectReference
 }
