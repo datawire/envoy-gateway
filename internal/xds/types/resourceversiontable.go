@@ -95,19 +95,3 @@ func (t *ResourceVersionTable) AddOrReplaceXdsResource(rType resource.Type, reso
 		t.AddXdsResource(rType, resource)
 	}
 }
-
-// FindXdsResource finds a resource of a given resource type according to the matchFunc. At soon as it finds the
-// the first match, it will return that resource along with its index number. It only returns the first match, regardless
-// if multiple resources satisfy the match criteria. If no match is found, it returns (-1, nil).
-func (t *ResourceVersionTable) FindXdsResource(rType resource.Type, matchFunc func(r types.Resource) bool) (int, types.Resource) {
-	if t.XdsResources == nil || t.XdsResources[rType] == nil {
-		return -1, nil
-	}
-
-	for i, r := range t.XdsResources[rType] {
-		if matchFunc(r) {
-			return i, r
-		}
-	}
-	return -1, nil
-}

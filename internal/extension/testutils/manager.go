@@ -10,10 +10,10 @@ import (
 var _ types.Manager = (*Manager)(nil)
 
 type Manager struct {
-	extensions []types.Extension
+	extensions []v1alpha1.Extension
 }
 
-func NewManager(ext ...types.Extension) types.Manager {
+func NewManager(ext ...v1alpha1.Extension) types.Manager {
 	return &Manager{
 		extensions: ext,
 	}

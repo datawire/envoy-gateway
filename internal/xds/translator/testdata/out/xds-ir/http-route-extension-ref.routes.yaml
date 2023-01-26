@@ -1,0 +1,15 @@
+- name: first-listener
+  virtualHosts:
+  - domains:
+    - '*'
+    name: first-listener
+    routes:
+    - match:
+        prefix: /
+      name: first-route
+      responseHeadersToAdd:
+      - header:
+          key: mock-extension-was-here
+          value: some-value
+      route:
+        cluster: first-route
