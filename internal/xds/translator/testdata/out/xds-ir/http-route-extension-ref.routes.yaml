@@ -1,0 +1,59 @@
+- name: first-listener
+  virtualHosts:
+  - domains:
+    - '*'
+    name: first-listener
+    routes:
+    - match:
+        prefix: /
+      name: first-route
+      responseHeadersToAdd:
+      - header:
+          key: mock-extension-was-here-listener-name
+          value: first-listener
+      - header:
+          key: mock-extension-was-here-route-name
+          value: first-route
+      - header:
+          key: mock-extension-was-here-route-namespace
+          value: default
+      - header:
+          key: mock-extension-was-here-extensionRef-group
+          value: foo.example.io
+      - header:
+          key: mock-extension-was-here-extensionRef-kind
+          value: Bar
+      - header:
+          key: mock-extension-was-here-extensionRef-name
+          value: baz
+      route:
+        cluster: first-route
+    - match:
+        prefix: /second-route
+      name: second-route
+      responseHeadersToAdd:
+      - header:
+          key: mock-extension-was-here-listener-name
+          value: first-listener
+      - header:
+          key: mock-extension-was-here-route-name
+          value: second-route
+      - header:
+          key: mock-extension-was-here-route-namespace
+          value: default
+      - header:
+          key: mock-extension-was-here-extensionRef-group
+          value: foo.example.io
+      - header:
+          key: mock-extension-was-here-extensionRef-kind
+          value: Bar
+      - header:
+          key: mock-extension-was-here-extensionRef-name
+          value: qux
+      route:
+        cluster: second-route
+    - match:
+        prefix: /third-route
+      name: third-route
+      route:
+        cluster: third-route
