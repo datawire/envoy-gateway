@@ -16,8 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"sigs.k8s.io/gateway-api/apis/v1beta1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 	"github.com/envoyproxy/gateway/internal/ir"
 )
 
@@ -104,13 +107,25 @@ func TestTranslate(t *testing.T) {
 		{
 			name: "ratelimit",
 		},
+		{
+			name: "http-route-extension-ref",
+		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			ir := requireXdsIRFromInputTestData(t, "xds-ir", tc.name+".yaml")
-			tCtx, err := Translate(ir)
+
+			ext := v1alpha1.Extension{
+				Name: "foo",
+				APIGroups: []v1beta1.Group{
+					"foo.example.io",
+				},
+			}
+			extManager := testutils.NewManager(ext)
+
+			tCtx, err := Translate(ir, extManager)
 			require.NoError(t, err)
 			listeners := tCtx.XdsResources[resource.ListenerType]
 			routes := tCtx.XdsResources[resource.RouteType]

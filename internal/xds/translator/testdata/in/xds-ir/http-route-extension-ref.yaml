@@ -1,0 +1,40 @@
+name: "http-route"
+http:
+- name: first-listener
+  address: 0.0.0.0
+  port: 10080
+  hostnames:
+  - "*"
+  routes:
+  - name: first-route
+    pathMatch:
+      prefix: "/"
+    destinations:
+    - host: "1.2.3.4"
+      port: 50000
+    extensions:
+      extensionId: foo
+      httpRouteNamespace: "default"
+      extensionRefs:
+      - group: foo.example.io
+        kind: Bar
+        name: baz
+  - name: second-route
+    pathMatch:
+      prefix: "/second-route"
+    destinations:
+    - host: "5.6.7.8"
+      port: 50000
+    extensions:
+      extensionId: foo
+      httpRouteNamespace: "default"
+      extensionRefs:
+      - group: foo.example.io
+        kind: Bar
+        name: qux
+  - name: third-route
+    pathMatch:
+      prefix: "/third-route"
+    destinations:
+    - host: "9.9.9.9"
+      port: 50000

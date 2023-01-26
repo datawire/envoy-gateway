@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
+	extension "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/ir"
 	"github.com/envoyproxy/gateway/internal/message"
 	"github.com/envoyproxy/gateway/internal/xds/translator"
@@ -16,8 +17,9 @@ import (
 
 type Config struct {
 	config.Server
-	XdsIR *message.XdsIR
-	Xds   *message.Xds
+	XdsIR            *message.XdsIR
+	Xds              *message.Xds
+	ExtensionManager extension.Manager
 }
 
 type Runner struct {
@@ -52,7 +54,7 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 				r.Xds.Delete(key)
 			} else {
 				// Translate to xds resources
-				result, err := translator.Translate(val)
+				result, err := translator.Translate(val, r.ExtensionManager)
 				if err != nil {
 					r.Logger.Error(err, "failed to translate xds ir")
 				} else {

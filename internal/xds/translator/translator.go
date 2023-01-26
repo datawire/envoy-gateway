@@ -7,6 +7,7 @@ package translator
 
 import (
 	"errors"
+	"fmt"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -15,19 +16,22 @@ import (
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/tetratelabs/multierror"
 
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
+	extensionTypes "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/ir"
 	"github.com/envoyproxy/gateway/internal/xds/types"
+	"github.com/envoyproxy/gateway/proto/extension"
 )
 
 // Translate translates the XDS IR into xDS resources
-func Translate(ir *ir.Xds) (*types.ResourceVersionTable, error) {
+func Translate(ir *ir.Xds, extManager extensionTypes.Manager) (*types.ResourceVersionTable, error) {
 	if ir == nil {
 		return nil, errors.New("ir is nil")
 	}
 
 	tCtx := new(types.ResourceVersionTable)
 
-	if err := processHTTPListenerXdsTranslation(tCtx, ir.HTTP); err != nil {
+	if err := processHTTPListenerXdsTranslation(tCtx, ir.HTTP, extManager); err != nil {
 		return nil, err
 	}
 
@@ -42,7 +46,10 @@ func Translate(ir *ir.Xds) (*types.ResourceVersionTable, error) {
 	return tCtx, nil
 }
 
-func processHTTPListenerXdsTranslation(tCtx *types.ResourceVersionTable, httpListeners []*ir.HTTPListener) error {
+func processHTTPListenerXdsTranslation(
+	tCtx *types.ResourceVersionTable,
+	httpListeners []*ir.HTTPListener,
+	extManager extensionTypes.Manager) error {
 	for _, httpListener := range httpListeners {
 		addFilterChain := true
 		var xdsRouteCfg *route.RouteConfiguration
@@ -95,6 +102,8 @@ func processHTTPListenerXdsTranslation(tCtx *types.ResourceVersionTable, httpLis
 			Domains: httpListener.Hostnames,
 		}
 
+		var extensionID *v1alpha1.ExtensionId
+		routeExtRefCtxs := make([]*extension.HTTPRouteFilterExtensionContext, 0)
 		for _, httpRoute := range httpListener.Routes {
 			// 1:1 between IR HTTPRoute and xDS config.route.v3.Route
 			xdsRoute := buildXdsRoute(httpRoute)
@@ -106,6 +115,38 @@ func processHTTPListenerXdsTranslation(tCtx *types.ResourceVersionTable, httpLis
 			}
 			xdsCluster := buildXdsCluster(httpRoute.Name, httpRoute.Destinations, httpListener.IsHTTP2)
 			tCtx.AddXdsResource(resource.ClusterType, xdsCluster)
+
+			// Capture context for extensions
+			if httpRoute.Extensions != nil {
+				if extensionID == nil {
+					extensionID = &httpRoute.Extensions.ExtensionId
+				}
+
+				if *extensionID != httpRoute.Extensions.ExtensionId {
+					// NOTE: this is likely a programming error
+					return fmt.Errorf("multiple extensions are being used: %s, %s", *extensionID, httpRoute.Extensions.ExtensionId)
+				}
+
+				for _, extRef := range httpRoute.Extensions.ExtensionRefs {
+					if extRef == nil {
+						continue
+					}
+
+					ref := &extension.ObjectReference{
+						ApiGroup: string(extRef.Group),
+						Kind:     string(extRef.Kind),
+						Name:     string(extRef.Name),
+					}
+					routeExtRefCtx := &extension.HTTPRouteFilterExtensionContext{
+						RouteName:                xdsRoute.Name,
+						Hostnames:                vHost.Domains,
+						RouteNamespace:           httpRoute.Extensions.HTTPRouteNamespace,
+						RouteFilterExtensionRefs: []*extension.ObjectReference{ref},
+					}
+					routeExtRefCtxs = append(routeExtRefCtxs, routeExtRefCtx)
+				}
+			}
+
 		}
 
 		xdsRouteCfg.VirtualHosts = append(xdsRouteCfg.VirtualHosts, vHost)
@@ -119,6 +160,22 @@ func processHTTPListenerXdsTranslation(tCtx *types.ResourceVersionTable, httpLis
 			// Add cluster
 			if rlCluster != nil {
 				tCtx.AddXdsResource(resource.ClusterType, rlCluster)
+			}
+		}
+
+		// Call out to extension hook
+		if len(routeExtRefCtxs) > 0 {
+			xdsHookClient, err := extManager.GetXDSHookClient(*extensionID)
+			if err != nil {
+				return err
+			}
+			listenerExtCtx := &extension.HTTPListenerExtensionContext{
+				ListenerName:             httpListener.Name,
+				RouteFilterExtensionCtxs: routeExtRefCtxs,
+			}
+
+			if err := xdsHookClient.PostHTTPListenerTranslation(listenerExtCtx, tCtx); err != nil {
+				return err
 			}
 		}
 	}
