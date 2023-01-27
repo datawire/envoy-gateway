@@ -25,10 +25,13 @@ message ObjectReference {
 // HTTPListenerExtensionContext provides context on
 // the users intent so that the provided XDS can be modified by the Extension.
 message HTTPListenerExtensionContext {
+    // listener_name is the name of the Listener this context is for.
+    string listener_name = 1;
+
     // route_filter_extension_ctxs provides a list of HTTPRouteFilters
     // that use an extensionRef registered by the extension.
     // The list is in the order it was processed in XDS Translation
-    repeated HTTPRouteFilterExtensionContext route_filter_extension_ctxs = 1;
+    repeated HTTPRouteFilterExtensionContext route_filter_extension_ctxs = 2;
 }
 
 // HTTPRouteFilterExtensionContext provides context about an HTTPRoute containing an
@@ -41,10 +44,13 @@ message HTTPRouteFilterExtensionContext {
     // and QueryParameter matches?
     string route_name = 1;
 
+    // route_namespace is the namespace the HTTPRoute is located in
+    string route_namespace = 2;
+
     // hostnames are the fully qualified domain names attached to the HTTPRoute
-    repeated string hostnames = 2;
+    repeated string hostnames = 3;
 
     // route_filter_extension_refs contains the list of Objects added as extensionRefs
     // to an HTTPRouteFilter.
-    repeated ObjectReference route_filter_extension_refs = 3;
+    repeated ObjectReference route_filter_extension_refs = 4;
 }
