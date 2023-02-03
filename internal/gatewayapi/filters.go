@@ -630,7 +630,7 @@ func (t *Translator) processExtensionRefHTTPFilter(filter v1beta1.HTTPRouteFilte
 
 			if filterContext.Extensions == nil {
 				filterContext.Extensions = &ir.HTTPFilterExtensionRefs{
-					ExtensionId: *extName,
+					ExtensionId:        *extName,
 					HTTPRouteNamespace: httpRouteContext.GetNamespace(),
 				}
 			}

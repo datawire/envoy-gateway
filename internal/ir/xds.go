@@ -653,7 +653,7 @@ type RateLimitValue struct {
 // +k8s:deepcopy-gen=true
 type HTTPFilterExtensionRefs struct {
 	// ExtensionId is the ID of the registered extension that will handle the extensionRefs
-	ExtensionId   v1alpha1.ExtensionId
+	ExtensionId v1alpha1.ExtensionId
 	// Namespace of the HTTPRoute Gateway API resource
 	//
 	// TODO: It may make more sense to add this field to HTTPRoute instead but don't want to update

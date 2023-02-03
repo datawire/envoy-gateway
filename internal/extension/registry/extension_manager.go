@@ -51,15 +51,18 @@ func NewManager(cfg *config.Server) (types.Manager, error) {
 		return nil, fmt.Errorf("More than 1 extension is registered. For the time being, we allow up to 1 extension to be registered")
 	}
 
-	var extTable map[v1alpha1.ExtensionId]v1alpha1.Extension
+	extTable := make(map[v1alpha1.ExtensionId]v1alpha1.Extension)
 	for _, extension := range cfg.EnvoyGateway.Extensions {
 		extTable[extension.Name] = *extension
 	}
 
+	hookConnCache := make(map[hookConn]*grpc.ClientConn)
+
 	return &Manager{
-		k8sClient:  cli,
-		namespace:  cfg.Namespace,
-		extensions: extTable,
+		k8sClient:     cli,
+		namespace:     cfg.Namespace,
+		extensions:    extTable,
+		hookConnCache: hookConnCache,
 	}, nil
 }
 
