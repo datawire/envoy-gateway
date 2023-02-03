@@ -650,6 +650,7 @@ type RateLimitValue struct {
 	Unit RateLimitUnit
 }
 
+// +k8s:deepcopy-gen=true
 type HTTPFilterExtensionRefs struct {
 	// ExtensionId is the ID of the registered extension that will handle the extensionRefs
 	ExtensionId   v1alpha1.ExtensionId
