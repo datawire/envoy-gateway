@@ -127,9 +127,9 @@ func updateXdsTable(xdsTable *xdsTypes.ResourceVersionTable, extResp *extension.
 
 	// We're assuming that Cluster names are unique.
 	for _, cluster := range extResp.Clusters {
-		xdsTable.AddOrReplaceXdsResource(resource.RouteType, cluster, func(existing resourceTypes.Resource, new resourceTypes.Resource) bool {
+		xdsTable.AddOrReplaceXdsResource(resource.ClusterType, cluster, func(existing resourceTypes.Resource, new resourceTypes.Resource) bool {
 			existingCluster := existing.(*clusters.Cluster)
-			newCluster := new.(*route.RouteConfiguration)
+			newCluster := new.(*clusters.Cluster)
 			if newCluster == nil || existingCluster == nil {
 				return false
 			}
