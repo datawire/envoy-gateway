@@ -94,14 +94,14 @@ type FileProvider struct {
 
 type Extension struct {
 	// Name defines the name to register with for the extension.
-	Name ExtensionId
+	Name ExtensionId `json:"name"`
 
 	// APIGroups defines the set of K8s api groups the extension will handle.
-	APIGroups []v1beta1.Group
+	APIGroups []v1beta1.Group `json:"apiGroups"`
 
 	// Service defines the configuration of the extension service that the Envoy
 	// Gateway Control Plane will call through extension hooks.
-	Service *ExtensionService
+	Service *ExtensionService `json:"service"`
 }
 
 type ExtensionService struct {
