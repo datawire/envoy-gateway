@@ -22,6 +22,19 @@ import (
 	"github.com/envoyproxy/gateway/proto/extension"
 )
 
+const grpcServiceConfig = `{
+"methodConfig": [{
+	"name": [{"service": "envoygateway.extension.EnvoyGatewayExtension"}],
+	"waitForReady": true,
+	"retryPolicy": {
+		"MaxAttempts": 4,
+		"InitialBackoff": "0.1s",
+		"MaxBackoff": "1s",
+		"BackoffMultiplier": 2.0,
+		"RetryableStatusCodes": [ "UNAVAILABLE" ]
+	}
+}]}`
+
 type hookConn struct {
 	extensionID v1alpha1.ExtensionId
 	hookType    types.HookType
@@ -182,5 +195,6 @@ func setupGRPCOpts(ctx context.Context, client k8scli.Client, ext *v1alpha1.Exte
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+	opts = append(opts, grpc.WithDefaultServiceConfig(grpcServiceConfig))
 	return opts, nil
 }
