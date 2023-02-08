@@ -7,6 +7,7 @@ package runner
 
 import (
 	"context"
+	"time"
 
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
 	"sigs.k8s.io/yaml"
@@ -15,6 +16,7 @@ import (
 	extension "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/gatewayapi"
 	"github.com/envoyproxy/gateway/internal/message"
+	"github.com/envoyproxy/gateway/internal/metrics"
 	"github.com/envoyproxy/gateway/internal/provider/utils"
 )
 
@@ -49,6 +51,11 @@ func (r *Runner) Start(ctx context.Context) error {
 func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 	message.HandleSubscription(r.ProviderResources.GatewayAPIResources.Subscribe(ctx),
 		func(update message.Update[string, *gatewayapi.Resources]) {
+			metrics.TranslationCount.WithLabelValues(r.Name()).Inc()
+			start := time.Now()
+			defer func() {
+				metrics.TranslationTime.WithLabelValues(r.Name()).Observe(time.Since(start).Seconds())
+			}()
 			val := update.Value
 
 			if update.Delete || val == nil {
@@ -76,9 +83,11 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 
 			// Publish the IRs.
 			// Also validate the ir before sending it.
+			var isNotValid bool
 			for key, val := range result.InfraIR {
 				if err := val.Validate(); err != nil {
 					r.Logger.Error(err, "unable to validate infra ir, skipped sending it")
+					isNotValid = true
 				} else {
 					r.InfraIR.Store(key, val)
 					newKeys = append(newKeys, key)
@@ -88,6 +97,7 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 			for key, val := range result.XdsIR {
 				if err := val.Validate(); err != nil {
 					r.Logger.Error(err, "unable to validate xds ir, skipped sending it")
+					isNotValid = true
 				} else {
 					r.XdsIR.Store(key, val)
 				}
@@ -121,6 +131,12 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 			for _, udpRoute := range result.UDPRoutes {
 				key := utils.NamespacedName(udpRoute)
 				r.ProviderResources.UDPRouteStatuses.Store(key, udpRoute)
+			}
+
+			if isNotValid {
+				metrics.TranslationError.WithLabelValues(r.Name()).Inc()
+			} else {
+				metrics.TranslationSuccess.WithLabelValues(r.Name()).Inc()
 			}
 		},
 	)

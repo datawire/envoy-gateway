@@ -132,7 +132,8 @@ func (m *Manager) GetXDSHookClient(extID v1alpha1.ExtensionId) (types.XDSHookCli
 
 	client := extension.NewEnvoyGatewayExtensionClient(conn)
 	xdsHookClient := &XDSHook{
-		grpcClient: client,
+		grpcClient:  client,
+		extensionId: ext.Name,
 	}
 	return xdsHookClient, nil
 }

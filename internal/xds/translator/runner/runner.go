@@ -7,11 +7,13 @@ package runner
 
 import (
 	"context"
+	"time"
 
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
 	extension "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/ir"
 	"github.com/envoyproxy/gateway/internal/message"
+	"github.com/envoyproxy/gateway/internal/metrics"
 	"github.com/envoyproxy/gateway/internal/xds/translator"
 )
 
@@ -47,6 +49,11 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 	message.HandleSubscription(r.XdsIR.Subscribe(ctx),
 		func(update message.Update[string, *ir.Xds]) {
 			r.Logger.Info("received an update")
+			start := time.Now()
+			defer func() {
+				metrics.TranslationTime.WithLabelValues(r.Name()).Observe(time.Since(start).Seconds())
+			}()
+
 			key := update.Key
 			val := update.Value
 
@@ -54,12 +61,15 @@ func (r *Runner) subscribeAndTranslate(ctx context.Context) {
 				r.Xds.Delete(key)
 			} else {
 				// Translate to xds resources
+				metrics.TranslationCount.WithLabelValues(r.Name()).Inc()
 				result, err := translator.Translate(val, r.ExtensionManager)
 				if err != nil {
 					r.Logger.Error(err, "failed to translate xds ir")
+					metrics.TranslationError.WithLabelValues(r.Name()).Inc()
 				} else {
 					// Publish
 					r.Xds.Store(key, result)
+					metrics.TranslationSuccess.WithLabelValues((r.Name())).Inc()
 				}
 			}
 		},

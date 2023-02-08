@@ -14,6 +14,7 @@ import (
 	gatewayapirunner "github.com/envoyproxy/gateway/internal/gatewayapi/runner"
 	infrarunner "github.com/envoyproxy/gateway/internal/infrastructure/runner"
 	"github.com/envoyproxy/gateway/internal/message"
+	"github.com/envoyproxy/gateway/internal/metrics"
 	providerrunner "github.com/envoyproxy/gateway/internal/provider/runner"
 	xdsserverrunner "github.com/envoyproxy/gateway/internal/xds/server/runner"
 	xdstranslatorrunner "github.com/envoyproxy/gateway/internal/xds/translator/runner"
@@ -91,6 +92,9 @@ func setupRunners(cfg *config.Server) error {
 	// TODO - Setup a Config Manager
 	// https://github.com/envoyproxy/gateway/issues/43
 	ctx := ctrl.SetupSignalHandler()
+
+	// Setup metrics
+	metrics.RegisterMetrics()
 
 	// Setup the Extension Manager
 	extMgr, err := extensionregistry.NewManager(cfg)

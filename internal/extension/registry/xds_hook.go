@@ -3,6 +3,9 @@ package registry
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"google.golang.org/grpc/status"
 
 	clusters "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -12,15 +15,22 @@ import (
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/extension/types"
+	"github.com/envoyproxy/gateway/internal/metrics"
 	xdsTypes "github.com/envoyproxy/gateway/internal/xds/types"
 	"github.com/envoyproxy/gateway/proto/extension"
 )
 
 var _ types.XDSHookClient = (*XDSHook)(nil)
 
+const (
+	postHTTPListenerTranslation = "PostHTTPListenerTranslation"
+)
+
 type XDSHook struct {
-	grpcClient extension.EnvoyGatewayExtensionClient
+	extensionId v1alpha1.ExtensionId
+	grpcClient  extension.EnvoyGatewayExtensionClient
 }
 
 // PostHTTPListenerTranslation calls out to the extension hook to modify XDS after processing
@@ -86,8 +96,25 @@ func (h *XDSHook) callExtensionHook(
 		Listener:         listener,
 		RouteTable:       routeCfg,
 	}
-	// TODO: add retries, metrics, logging, all that good stuff
+	metrics.ExtensionHookRequests.WithLabelValues(
+		string(h.extensionId),
+		string(types.XDSHook),
+		postHTTPListenerTranslation,
+	).Inc()
+	start := time.Now()
 	resp, err := h.grpcClient.PostHTTPListenerTranslation(ctx, req)
+	metrics.ExtensionResponseLatency.WithLabelValues(
+		string(h.extensionId),
+		string(types.XDSHook),
+		postHTTPListenerTranslation,
+	).Observe(time.Since(start).Seconds())
+	status, _ := status.FromError(err)
+	metrics.ExtensionHookResponse.WithLabelValues(
+		string(h.extensionId),
+		string(types.XDSHook),
+		postHTTPListenerTranslation,
+		status.Code().String(),
+	).Inc()
 	if err != nil {
 		return nil, err
 	}
