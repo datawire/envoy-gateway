@@ -26,6 +26,8 @@ import (
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
+	extension "github.com/envoyproxy/gateway/internal/extension/types"
+
 	egcfgv1a1 "github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/envoyproxy/gateway/api/config/v1alpha1/validation"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
@@ -56,26 +58,28 @@ const (
 )
 
 type gatewayAPIReconciler struct {
-	client          client.Client
-	log             logr.Logger
-	statusUpdater   status.Updater
-	classController gwapiv1b1.GatewayController
-	namespace       string
+	client           client.Client
+	log              logr.Logger
+	statusUpdater    status.Updater
+	classController  gwapiv1b1.GatewayController
+	namespace        string
+	extensionManager extension.Manager
 
 	resources *message.ProviderResources
 }
 
 // newGatewayAPIController
-func newGatewayAPIController(mgr manager.Manager, cfg *config.Server, su status.Updater, resources *message.ProviderResources) error {
+func newGatewayAPIController(mgr manager.Manager, cfg *config.Server, su status.Updater, resources *message.ProviderResources, extManager extension.Manager) error {
 	ctx := context.Background()
 
 	r := &gatewayAPIReconciler{
-		client:          mgr.GetClient(),
-		log:             cfg.Logger,
-		classController: gwapiv1b1.GatewayController(cfg.EnvoyGateway.Gateway.ControllerName),
-		namespace:       cfg.Namespace,
-		statusUpdater:   su,
-		resources:       resources,
+		client:           mgr.GetClient(),
+		log:              cfg.Logger,
+		classController:  gwapiv1b1.GatewayController(cfg.EnvoyGateway.Gateway.ControllerName),
+		namespace:        cfg.Namespace,
+		statusUpdater:    su,
+		resources:        resources,
+		extensionManager: extManager,
 	}
 
 	c, err := controller.New("gatewayapi", mgr, controller.Options{Reconciler: r})
@@ -508,7 +512,7 @@ func authenFilterHTTPRouteIndexFunc(rawObj client.Object) []string {
 		for i := range rule.Filters {
 			filter := rule.Filters[i]
 			if gatewayapi.IsAuthnHTTPFilter(&filter) {
-				if err := gatewayapi.ValidateHTTPRouteFilter(&filter); err == nil {
+				if err := gatewayapi.ValidateHTTPRouteFilter(nil, &filter); err == nil {
 					filters = append(filters,
 						types.NamespacedName{
 							Namespace: httproute.Namespace,
@@ -529,7 +533,7 @@ func rateLimitFilterHTTPRouteIndexFunc(rawObj client.Object) []string {
 		for i := range rule.Filters {
 			filter := rule.Filters[i]
 			if gatewayapi.IsRateLimitHTTPFilter(&filter) {
-				if err := gatewayapi.ValidateHTTPRouteFilter(&filter); err == nil {
+				if err := gatewayapi.ValidateHTTPRouteFilter(nil, &filter); err == nil {
 					filters = append(filters,
 						types.NamespacedName{
 							Namespace: httproute.Namespace,

@@ -8,6 +8,8 @@ package gatewayapi
 import (
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	extension "github.com/envoyproxy/gateway/internal/extension/types"
 )
 
 const (
@@ -63,6 +65,10 @@ type Translator struct {
 	// GlobalRateLimitEnabled is true when global
 	// ratelimiting has been configured by the admin.
 	GlobalRateLimitEnabled bool
+
+	// ExtensionManager manages extensions to support
+	// additional filters for HTTRouteFilter extensionRef
+	ExtensionManager extension.Manager
 }
 
 type TranslateResult struct {

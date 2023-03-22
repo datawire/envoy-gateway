@@ -13,6 +13,7 @@ import (
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/api/v1alpha1/validation"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
@@ -223,6 +224,11 @@ type HTTPRoute struct {
 	RateLimit *RateLimit
 	// RequestAuthentication defines the schema for authenticating HTTP requests.
 	RequestAuthentication *RequestAuthentication
+	// ExtensionRefs holds unstructured resources that were introduced by an extension and used on the HTTPRoute as extensionRef filters
+	// TODO: Envoy Gateway is not currently watching resources introduced by an extension.
+	// When that functionality is introduced then this field will be used to pass the resources through the xDS layer
+	// and on to the extension
+	ExtensionRefs []*unstructured.Unstructured
 }
 
 // RequestAuthentication defines the schema for authenticating HTTP requests.

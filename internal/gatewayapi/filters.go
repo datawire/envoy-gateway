@@ -16,6 +16,7 @@ import (
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/ir"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type FiltersTranslator interface {
@@ -59,6 +60,8 @@ type HTTPFilterIR struct {
 
 	RequestAuthentication *ir.RequestAuthentication
 	RateLimit             *ir.RateLimit
+
+	ExtensionRefs []*unstructured.Unstructured
 }
 
 // ProcessHTTPFilters translates gateway api http filters to IRs.
@@ -78,7 +81,7 @@ func (t *Translator) ProcessHTTPFilters(parentRef *RouteParentContext,
 		if httpFiltersContext.DirectResponse != nil {
 			break
 		}
-		if err := ValidateHTTPRouteFilter(&filter); err != nil {
+		if err := ValidateHTTPRouteFilter(&t.ExtensionManager, &filter); err != nil {
 			t.processInvalidHTTPFilter(string(filter.Type), httpFiltersContext, err)
 			break
 		}
@@ -658,6 +661,9 @@ func (t *Translator) processExtensionRefHTTPFilter(extFilter *v1beta1.LocalObjec
 		return
 	}
 
+	// TODO: Envoy Gateway is not currently watching resources introduced by an extension.
+	// When that functionality is introduced then this section will need to be updated to pass along
+	// the watched unstructured resources so that the extension can receive them in the hook call(s)
 	filterNs := filterContext.Route.GetNamespace()
 	// Set the filter context and return early if a matching AuthenticationFilter is found.
 	if string(extFilter.Kind) == egv1a1.KindAuthenticationFilter {

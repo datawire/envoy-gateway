@@ -21,6 +21,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
 	"sigs.k8s.io/yaml"
+
+	"github.com/envoyproxy/gateway/api/config/v1alpha1"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 )
 
 func mustUnmarshal(t *testing.T, val []byte, out interface{}) {
@@ -46,10 +49,31 @@ func TestTranslate(t *testing.T) {
 			want := &TranslateResult{}
 			mustUnmarshal(t, output, want)
 
+			ext := v1alpha1.Extension{
+				Resources: []v1alpha1.GroupVersionKind{
+					{
+						Group:   "foo.example.io",
+						Version: "v1alpha1",
+						Kind:    "examplefilter",
+					},
+				},
+				Hooks: &v1alpha1.ExtensionHooks{
+					XDSTranslator: &v1alpha1.XDSTranslatorHooks{
+						Post: []v1alpha1.XDSTranslatorHook{
+							v1alpha1.XDSRoute,
+							v1alpha1.XDSVirtualHost,
+							v1alpha1.XDSHTTPListener,
+							v1alpha1.XDSTranslation,
+						},
+					},
+				},
+			}
+
 			translator := &Translator{
 				GatewayClassName:       "envoy-gateway-class",
 				ProxyImage:             "envoyproxy/envoy:translator-tests",
 				GlobalRateLimitEnabled: true,
+				ExtensionManager:       testutils.NewManager(ext),
 			}
 
 			// Add common test fixtures
