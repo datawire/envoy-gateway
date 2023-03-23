@@ -13,7 +13,9 @@ import (
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/stretchr/testify/require"
 
+	egv1a1cfg "github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
+	"github.com/envoyproxy/gateway/internal/extension/testutils"
 	"github.com/envoyproxy/gateway/internal/ir"
 	"github.com/envoyproxy/gateway/internal/message"
 )
@@ -24,10 +26,12 @@ func TestRunner(t *testing.T) {
 	xds := new(message.Xds)
 	cfg, err := config.New()
 	require.NoError(t, err)
+	em := testutils.NewManager(egv1a1cfg.Extension{})
 	r := New(&Config{
-		Server: *cfg,
-		XdsIR:  xdsIR,
-		Xds:    xds,
+		Server:           *cfg,
+		XdsIR:            xdsIR,
+		Xds:              xds,
+		ExtensionManager: em,
 	})
 
 	ctx := context.Background()
