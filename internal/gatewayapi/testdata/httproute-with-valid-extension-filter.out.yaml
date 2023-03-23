@@ -21,8 +21,8 @@ gateways:
       - group: gateway.networking.k8s.io
         kind: HTTPRoute
       - group: gateway.networking.k8s.io
-        kind: GRPCRoute        
-      attachedRoutes: 0 
+        kind: GRPCRoute
+      attachedRoutes: 0
       conditions:
       - type: Programmed
         status: "True"
@@ -55,9 +55,9 @@ httpRoutes:
       filters:
       - type: ExtensionRef
         extensionRef:
-          group: unsupported.group.io
-          kind: UnsupportedKind
-          name: unsupported
+          group: foo.example.io
+          kind: examplefilter
+          name: example-extension-filter
   status:
     parents:
     - parentRef:
@@ -69,11 +69,13 @@ httpRoutes:
       - type: Accepted
         status: "False"
         reason: UnsupportedValue
-        message: "Invalid filter ExtensionRef: unrecognized group and/or kind: Group: unsupported.group.io; Kind: UnsupportedKind"
+        message: "Reference default/example-extension-filter not found for filter type: examplefilter"
       - type: ResolvedRefs
-        status: "True"
-        reason: ResolvedRefs
-        message: Resolved all the Object references for the Route
+        status: "False"
+        reason: BackendNotFound
+        # TODO: Once EG can watch resources introduced by extensions then update this test.
+        # Until then test that we cannot find the resource rather than it being an unsupported kind
+        message: "Reference default/example-extension-filter not found for filter type: examplefilter"
 xdsIR:
   envoy-gateway-gateway-1:
     http:
