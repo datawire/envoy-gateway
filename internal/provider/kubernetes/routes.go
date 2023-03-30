@@ -227,7 +227,7 @@ func (r *gatewayAPIReconciler) processHTTPRoutes(ctx context.Context, gatewayNam
 
 			for i := range rule.Filters {
 				filter := rule.Filters[i]
-				if err := gatewayapi.ValidateHTTPRouteFilter(&r.extensionManager, &filter); err != nil {
+				if err := gatewayapi.ValidateHTTPRouteFilter(&filter); err != nil {
 					r.log.Error(err, "bypassing filter rule", "index", i)
 					continue
 				}
@@ -285,8 +285,7 @@ func (r *gatewayAPIReconciler) processHTTPRoutes(ctx context.Context, gatewayNam
 						}
 					}
 				} else if filter.Type == gwapiv1b1.HTTPRouteFilterExtensionRef {
-					if string(filter.ExtensionRef.Kind) == egv1a1.KindAuthenticationFilter &&
-						filter.ExtensionRef.Group == gwapiv1b1.Group(egv1a1.GroupVersion.Group) {
+					if string(filter.ExtensionRef.Kind) == egv1a1.KindAuthenticationFilter {
 						key := types.NamespacedName{
 							// The AuthenticationFilter must be in the same namespace as the HTTPRoute.
 							Namespace: httpRoute.Namespace,
@@ -299,8 +298,7 @@ func (r *gatewayAPIReconciler) processHTTPRoutes(ctx context.Context, gatewayNam
 						}
 
 						resourceTree.AuthenticationFilters = append(resourceTree.AuthenticationFilters, filter)
-					} else if string(filter.ExtensionRef.Kind) == egv1a1.KindRateLimitFilter &&
-						filter.ExtensionRef.Group == gwapiv1b1.Group(egv1a1.GroupVersion.Group) {
+					} else if string(filter.ExtensionRef.Kind) == egv1a1.KindRateLimitFilter {
 						key := types.NamespacedName{
 							// The RateLimitFilter must be in the same namespace as the HTTPRoute.
 							Namespace: httpRoute.Namespace,

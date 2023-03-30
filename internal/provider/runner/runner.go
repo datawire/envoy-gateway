@@ -11,8 +11,6 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	extension "github.com/envoyproxy/gateway/internal/extension/types"
-
 	"github.com/envoyproxy/gateway/api/config/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
 	"github.com/envoyproxy/gateway/internal/message"
@@ -22,7 +20,6 @@ import (
 type Config struct {
 	config.Server
 	ProviderResources *message.ProviderResources
-	ExtensionManager  extension.Manager
 }
 
 type Runner struct {
@@ -46,7 +43,7 @@ func (r *Runner) Start(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to get kubeconfig: %w", err)
 		}
-		p, err := kubernetes.New(cfg, &r.Config.Server, r.ProviderResources, r.ExtensionManager)
+		p, err := kubernetes.New(cfg, &r.Config.Server, r.ProviderResources)
 		if err != nil {
 			return fmt.Errorf("failed to create provider %s: %w", v1alpha1.ProviderTypeKubernetes, err)
 		}

@@ -80,7 +80,7 @@ func (t *Translator) ProcessHTTPFilters(parentRef *RouteParentContext,
 		if httpFiltersContext.DirectResponse != nil {
 			break
 		}
-		if err := ValidateHTTPRouteFilter(&t.ExtensionManager, &filter); err != nil {
+		if err := ValidateHTTPRouteFilter(&filter); err != nil {
 			t.processInvalidHTTPFilter(string(filter.Type), httpFiltersContext, err)
 			break
 		}

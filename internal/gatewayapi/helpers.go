@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
-	extTypes "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/ir"
 )
 
@@ -188,7 +187,7 @@ func HasReadyListener(listeners []*ListenerContext) bool {
 }
 
 // ValidateHTTPRouteFilter validates the provided filter within HTTPRoute.
-func ValidateHTTPRouteFilter(extensionManager *extTypes.Manager, filter *v1beta1.HTTPRouteFilter) error {
+func ValidateHTTPRouteFilter(filter *v1beta1.HTTPRouteFilter) error {
 	switch {
 	case filter == nil:
 		return errors.New("filter is nil")
@@ -199,27 +198,17 @@ func ValidateHTTPRouteFilter(extensionManager *extTypes.Manager, filter *v1beta1
 		filter.Type == v1beta1.HTTPRouteFilterResponseHeaderModifier:
 		return nil
 	case filter.Type == v1beta1.HTTPRouteFilterExtensionRef:
-		if filter.ExtensionRef == nil {
+		switch {
+		case filter.ExtensionRef == nil:
 			return errors.New("extensionRef field must be specified for an extended filter")
-		}
-
-		// Validation for Envoy Gateway native Group/Kinds
-		if string(filter.ExtensionRef.Group) == egv1a1.GroupVersion.Group {
-			switch string(filter.ExtensionRef.Kind) {
-			case egv1a1.KindAuthenticationFilter:
-				return nil
-			case egv1a1.KindRateLimitFilter:
-				return nil
-			default:
-				return fmt.Errorf("invalid kind %s for group %s", string(filter.ExtensionRef.Kind), string(filter.ExtensionRef.Group))
-			}
-		} else {
-			// If it isn't native to Envoy Gateway then it is either an Extension resource or unknown
-			em := *extensionManager
-			if em != nil && em.HasExtension(filter.ExtensionRef.Group, filter.ExtensionRef.Kind) {
-				return nil
-			}
-			return fmt.Errorf("unrecognized group and/or kind: Group: %s; Kind: %s", filter.ExtensionRef.Group, filter.ExtensionRef.Kind)
+		case string(filter.ExtensionRef.Group) != egv1a1.GroupVersion.Group:
+			return fmt.Errorf("invalid group; must be %s", egv1a1.GroupVersion.Group)
+		case string(filter.ExtensionRef.Kind) == egv1a1.KindAuthenticationFilter:
+			return nil
+		case string(filter.ExtensionRef.Kind) == egv1a1.KindRateLimitFilter:
+			return nil
+		default:
+			return fmt.Errorf("unknown %s kind", string(filter.ExtensionRef.Kind))
 		}
 	}
 

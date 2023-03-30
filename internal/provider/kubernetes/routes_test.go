@@ -18,8 +18,6 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
-	"github.com/envoyproxy/gateway/internal/extension/testutils"
-
 	cfgv1a1 "github.com/envoyproxy/gateway/api/config/v1alpha1"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/envoyproxy/gateway/internal/envoygateway"
@@ -392,60 +390,6 @@ func TestProcessHTTPRoutes(t *testing.T) {
 			},
 			expected: true,
 		},
-		{
-			name: "httproute with custom_extension",
-			routes: []*gwapiv1b1.HTTPRoute{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "test",
-					},
-					Spec: gwapiv1b1.HTTPRouteSpec{
-						CommonRouteSpec: gwapiv1b1.CommonRouteSpec{
-							ParentRefs: []gwapiv1b1.ParentReference{
-								{
-									Name: "test",
-								},
-							},
-						},
-						Rules: []gwapiv1b1.HTTPRouteRule{
-							{
-								Matches: []gwapiv1b1.HTTPRouteMatch{
-									{
-										Path: &gwapiv1b1.HTTPPathMatch{
-											Type:  gatewayapi.PathMatchTypePtr(gwapiv1b1.PathMatchPathPrefix),
-											Value: gatewayapi.StringPtr("/"),
-										},
-									},
-								},
-								Filters: []gwapiv1b1.HTTPRouteFilter{
-									{
-										Type: gwapiv1b1.HTTPRouteFilterExtensionRef,
-										ExtensionRef: &gwapiv1b1.LocalObjectReference{
-											Group: gwapiv1b1.Group("foo.example.io"),
-											Kind:  gwapiv1b1.Kind("examplefilter"),
-											Name:  gwapiv1b1.ObjectName("test-extension"),
-										},
-									},
-								},
-								BackendRefs: []gwapiv1b1.HTTPBackendRef{
-									{
-										BackendRef: gwapiv1b1.BackendRef{
-											BackendObjectReference: gwapiv1b1.BackendObjectReference{
-												Group: gatewayapi.GroupPtr(corev1.GroupName),
-												Kind:  gatewayapi.KindPtr(gatewayapi.KindService),
-												Name:  "test",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: true,
-		},
 	}
 
 	for i := range testCases {
@@ -457,19 +401,9 @@ func TestProcessHTTPRoutes(t *testing.T) {
 		// Create the reconciler.
 		logger, err := log.NewLogger()
 		require.NoError(t, err)
-		ext := cfgv1a1.Extension{
-			Resources: []cfgv1a1.GroupVersionKind{
-				{
-					Group:   "foo.example.io",
-					Version: "v1alpha1",
-					Kind:    "examplefilter",
-				},
-			},
-		}
 		r := &gatewayAPIReconciler{
-			log:              logger,
-			classController:  gcCtrlName,
-			extensionManager: testutils.NewManager(ext),
+			log:             logger,
+			classController: gcCtrlName,
 		}
 		ctx := context.Background()
 

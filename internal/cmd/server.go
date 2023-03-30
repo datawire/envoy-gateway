@@ -112,7 +112,6 @@ func setupRunners(cfg *config.Server) error {
 	providerRunner := providerrunner.New(&providerrunner.Config{
 		Server:            *cfg,
 		ProviderResources: pResources,
-		ExtensionManager:  extMgr,
 	})
 	if err := providerRunner.Start(ctx); err != nil {
 		return err

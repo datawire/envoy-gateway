@@ -17,7 +17,6 @@ import (
 
 	"github.com/envoyproxy/gateway/internal/envoygateway"
 	"github.com/envoyproxy/gateway/internal/envoygateway/config"
-	extension "github.com/envoyproxy/gateway/internal/extension/types"
 	"github.com/envoyproxy/gateway/internal/message"
 	"github.com/envoyproxy/gateway/internal/status"
 )
@@ -31,7 +30,7 @@ type Provider struct {
 }
 
 // New creates a new Provider from the provided EnvoyGateway.
-func New(cfg *rest.Config, svr *config.Server, resources *message.ProviderResources, extManger extension.Manager) (*Provider, error) {
+func New(cfg *rest.Config, svr *config.Server, resources *message.ProviderResources) (*Provider, error) {
 	// TODO: Decide which mgr opts should be exposed through envoygateway.provider.kubernetes API.
 	mgrOpts := manager.Options{
 		Scheme:                 envoygateway.GetScheme(),
@@ -52,7 +51,7 @@ func New(cfg *rest.Config, svr *config.Server, resources *message.ProviderResour
 	}
 
 	// Create and register the controllers with the manager.
-	if err := newGatewayAPIController(mgr, svr, updateHandler.Writer(), resources, extManger); err != nil {
+	if err := newGatewayAPIController(mgr, svr, updateHandler.Writer(), resources); err != nil {
 		return nil, fmt.Errorf("failted to create gatewayapi controller: %w", err)
 	}
 
